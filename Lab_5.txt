@@ -1,0 +1,69 @@
+person(ms_barrada).
+person(ms_gort).
+person(mr_klatu).
+person(mr_nikto).
+
+object(balloon).
+object(clothesline).
+object(frisbee).
+object(water_tower).
+
+solve :-
+    person(TPerson), % Person who saw something on tuesday
+    person(WPerson), % Person who saw something on wednesday
+    person(THPerson), % Person who saw something on thursday
+    person(FPerson), % Person who saw something on friday
+    all_different([TPerson, WPerson, THPerson, FPerson]),
+    
+    object(TObject), % Tuesday object sighting
+    object(WObject), % Wednesday object sighting
+    object(THObject), % Thursday object sighting
+    object(FObject), % Friday object sighting
+    all_different([TObject, WObject, THObject, FObject]),
+
+    % Using days as "anchor point" for the puzzle
+    Triples = [ [tuesday, TPerson, TObject],
+                [wednesday, WPerson, WObject],
+                [thursday, THPerson, THObject],
+                [friday, FPerson, FObject] ],
+
+	% 1. Mr. Klatu made his sighting at some point earlier in the week than the one who saw
+	% the balloon, but at some point later in the week than the one who spotted the frisbee
+	% (who isn't Ms. Gort)
+	\+(member([_, mr_klatu, balloon], Triples)), % klatu didn't see the balloon
+	\+(member([_, mr_klatu, frisbee], Triples)), % klatu also didn't see the frisbee
+	\+(member([_, ms_gort, frisbee], Triples)), % gort also didn't see frisbee
+	earlier([_, mr_klatu, _], [_, _, balloon], Triples),
+	earlier([_, _, frisbee], [_, mr_klatu, _], Triples),
+
+	% 2. Friday's sighting was made by either Ms. Barrada or the one who saw a clothesline,
+	% or both
+    % Create condition that includes both with OR
+	(member([friday, ms_barrada, _], Triples) ; % add condition that Barrada's sighting is at Friday
+	 member([friday, _, clothesline], Triples)), % add condition that clothesline sighting is at Friday
+
+	% 3. Mr. Nikto did not make his sighting on Tuesday
+	\+(member([tuesday, mr_nikto, _], Triples)), % nikto not on tuesday
+   
+	% 4. Mr. Klatu isn't the one whose object turned out to be a water tower
+	\+(member([_, mr_klatu, water_tower], Triples)), % klatu didn't see the water tower
+   
+	tell(tuesday, TPerson, TObject), % Show answer for tuesday
+	tell(wednesday, WPerson, WObject), % Show answer for wednesday
+    tell(thursday, THPerson, THObject), % Show answer for thursday
+    tell(friday, FPerson, FObject). % Show answer for friday
+
+% Succeeds if all elements of the argument list are bound and different.
+% Fails if any elements are unbound or equal to some other element.
+all_different([H | T]) :- member(H, T), !, false.
+all_different([_ | T]) :- all_different(T).
+all_different([_]).
+
+% Create earlier condition
+earlier(X, _, [X | _]). % Create earlier where X is earlier than any second input
+earlier(_, Y, [Y | _]) :- !, false. % Immediately prevent backtracking, ensures that Y is not earlier under any conditions
+earlier(X, Y, [_ | T]) :- earlier(X, Y, T). % Basically goes through list of triples if both earlier conditions fail outright
+
+% Create tell write up
+tell(X, Y, Z) :-
+    write('At '), write(X), write(', '), write(Y), write(' saw '), write(Z), nl.
